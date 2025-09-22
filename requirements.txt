@@ -1,0 +1,11 @@
+#nginx
+streamlit
+scikit-learn
+numpy
+pandas
+requests
+folium
+shapely
+streamlit-folium
+geopy
+
