@@ -1,0 +1,9 @@
+#nginx
+streamlit
+numpy
+requests
+folium
+scikit-learn
+streamlit-folium
+
+
