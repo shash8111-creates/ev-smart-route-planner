@@ -1,6 +1,2 @@
-streamlit
-folium
-streamlit-folium
-requests
-scikit-learn
-numpy
+streamlit==1.38.0
+requests==2.31.0
