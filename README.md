@@ -134,7 +134,7 @@ ev-smart-route-planner/
 
 **Shashank**
 - GitHub: [@shash8111-creates](https://github.com/shash8111-creates)
-- Email: 1AH22CS154@acsce.edu.in
+- Email: shash8111@gmail.com
 
 ---
 
