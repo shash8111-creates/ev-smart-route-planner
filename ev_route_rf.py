@@ -2,6 +2,7 @@
 import streamlit as st
 from auth_ui import render_login_page, render_main_app
 from trip_manager import TripManager
+st.set_page_config(page_title="⚡ EV Smart Route Planner", layout="wide")
 
 # ============= SESSION STATE INITIALIZATION =============
 if 'logged_in' not in st.session_state:
@@ -30,7 +31,6 @@ import os
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 
-st.set_page_config(page_title="⚡ EV Smart Route Planner", layout="wide")
 st.title("⚡ EV Smart Route Planner")
 st.write("Plan your EV journey with estimated energy, SOC, and charging stations along the route.")
 
@@ -201,5 +201,6 @@ if st.button("Plan Route") or st.session_state.route_data:
 
     st.subheader("🗺️ Route & Charging Stations")
     st_folium(m, width=800, height=500)
+
 
 
