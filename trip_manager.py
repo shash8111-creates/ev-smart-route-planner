@@ -80,7 +80,7 @@ class TripManager:
             'avg_consumption_kwh_per_km': result[4] or 0
         }
 
-========================================
+#========================================
 4. STREAMLIT UI - auth_ui.py
 
 
