@@ -162,7 +162,7 @@ def predict_energy(distance_km, vehicle, drive_mode):
 # Main Route Planning
 # ----------------------------
 if st.button("Plan Route") or st.session_state.route_data:
-    if st.session_state.route_data is None:
+    if st.session_state.route_data::
         start_coords = geocode(start)
         end_coords = geocode(end)
         if start_coords and end_coords:
@@ -201,6 +201,7 @@ if st.button("Plan Route") or st.session_state.route_data:
 
     st.subheader("🗺️ Route & Charging Stations")
     st_folium(m, width=800, height=500)
+
 
 
 
