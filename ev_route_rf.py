@@ -179,7 +179,6 @@ if st.button("Plan Route") or st.session_state.route_data:
                 (start_coords[0]+end_coords[0])/2, (start_coords[1]+end_coords[1])/2
             )
             st.session_state.soc = max(0, current_charge_pct - (energy_pred/vehicles_info[vehicle_choice]["usable_kwh"]*100))
-                if st.session_state.route_data:
 
         # Display results
         route_distance = st.session_state.route_data["routes"][0]["distance"] / 1000
@@ -208,5 +207,6 @@ if st.button("Plan Route") or st.session_state.route_data:
     
     
     
+
 
 
