@@ -60,7 +60,6 @@ def render_login_page():
 
 def render_main_app():
     """Render main application after login"""
-    st.set_page_config(page_title="EV Route Planner", layout="wide")
     
     # Sidebar
     with st.sidebar:
