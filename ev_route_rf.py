@@ -223,11 +223,8 @@ if st.button("🗺️ Plan Route", use_container_width=True):
                     st.session_state.energy_pred / vehicles_info[vehicle_choice]["usable_kwh"] * 100
                 )
             )
-            
-            st.success("✅ Route planned successfully!")
-            st.rerun()
 
-# Display Results if route exists
+# Display Results if route exists (NO st.rerun() - keep results on screen!)
 if st.session_state.route_data:
     route_distance = st.session_state.route_data["routes"][0]["distance"] / 1000
     
@@ -281,7 +278,11 @@ if st.session_state.route_data:
     
     st_folium(m, width=800, height=500)
     
-    # Clear button
-    if st.button("🔄 Plan Another Route"):
+    # Clear button (NO st.rerun() here either)
+    if st.button("🔄 Plan Another Route", use_container_width=True):
         st.session_state.route_data = None
-        st.rerun()
+        st.session_state.start_coords = None
+        st.session_state.end_coords = None
+        st.session_state.chargers = []
+        st.session_state.energy_pred = 0
+        st.session_state.soc = 100
