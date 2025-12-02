@@ -2,6 +2,24 @@
 import streamlit as st
 from auth_ui import render_login_page, render_main_app
 from trip_manager import TripManager
+
+# ============= SESSION STATE INITIALIZATION =============
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+    st.session_state.user_id = None
+    st.session_state.username = None
+    st.session_state.route_data = {}
+    st.session_state.chargers = []
+    st.session_state.energy_pred = 0
+    st.session_state.soc = 100
+
+# ============= MAIN APP ENTRY POINT =============
+if st.session_state.logged_in:
+    # User is authenticated - render main app
+    render_main_app()
+else:
+    # User not authenticated - render login page
+    render_login_page()
 import streamlit as st
 import pandas as pd
 import requests
@@ -183,4 +201,5 @@ if st.button("Plan Route") or st.session_state.route_data:
 
     st.subheader("🗺️ Route & Charging Stations")
     st_folium(m, width=800, height=500)
+
 
