@@ -4,7 +4,7 @@ from trip_manager import TripManager
 
 def render_login_page():
     """Render login page"""
-    st.set_page_config(page_title="EV Route Planner", layout="centered")
+   
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
