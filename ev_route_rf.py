@@ -7,20 +7,19 @@ import folium
 from streamlit_folium import st_folium
 import joblib
 import os
-import time
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 
 # ===== STREAMLIT CONFIG (MUST BE FIRST) =====
 st.set_page_config(page_title="⚡ EV Smart Route Planner", layout="wide")
 
-# ===== MODULE IMPORTS =====
+# ===== OPTIONAL MODULE IMPORTS (with fallback) =====
 try:
     from auth_ui import render_login_page, render_main_app
-    from trip_manager import TripManager
-except ImportError as e:
-    st.error(f"Module import error: {e}")
-    st.stop()
+    HAS_AUTH = True
+except ImportError:
+    HAS_AUTH = False
+    st.warning("⚠️ Auth module not found. Running in demo mode.")
 
 # ===== VEHICLE PRESETS =====
 vehicles_info = {
@@ -36,14 +35,14 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.user_id = None
     st.session_state.username = None
+
+if 'route_data' not in st.session_state:
     st.session_state.route_data = None
+    st.session_state.start_coords = None
+    st.session_state.end_coords = None
     st.session_state.chargers = []
     st.session_state.energy_pred = 0
     st.session_state.soc = 100
-
-for key in ["route_data", "energy_pred", "start_coords", "end_coords", "chargers", "soc"]:
-    if key not in st.session_state:
-        st.session_state[key] = None
 
 # ===== HELPER FUNCTIONS WITH ERROR HANDLING =====
 
@@ -124,160 +123,165 @@ def load_or_train_model():
     """Load or train Random Forest model."""
     MODEL_FILE = "rf_ev_model.pkl"
     FEATURE_FILE = "rf_feature_order.pkl"
+    
+    # Try to load existing model
     try:
         if os.path.exists(MODEL_FILE) and os.path.exists(FEATURE_FILE):
             rf_model = joblib.load(MODEL_FILE)
             feature_order = joblib.load(FEATURE_FILE)
-            st.success("✅ Model loaded from cache")
             return rf_model, feature_order
     except Exception as e:
         st.warning(f"Could not load cached model: {e}")
 
+    # Try to train new model
     try:
-        st.info("🔄 Training new Random Forest model...")
-        df = pd.read_csv("ev_energy_dataset_full_updated.csv")
-        X = df.drop(columns=['energy_consumed'])
-        y = df['energy_consumed']
-        X = pd.get_dummies(X, columns=['vehicle_type', 'drive_mode'])
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        rf = RandomForestRegressor(n_estimators=200, random_state=42)
-        rf.fit(X_train, y_train)
-        joblib.dump(rf, MODEL_FILE)
-        joblib.dump(list(X.columns), FEATURE_FILE)
-        st.success("✅ Model trained and saved!")
+        with st.spinner("🔄 Training Random Forest model..."):
+            df = pd.read_csv("ev_energy_dataset_full_updated.csv")
+            X = df.drop(columns=['energy_consumed'])
+            y = df['energy_consumed']
+            X = pd.get_dummies(X, columns=['vehicle_type', 'drive_mode'])
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            rf = RandomForestRegressor(n_estimators=200, random_state=42)
+            rf.fit(X_train, y_train)
+            joblib.dump(rf, MODEL_FILE)
+            joblib.dump(list(X.columns), FEATURE_FILE)
+            st.success("✅ Model trained and saved!")
         return rf, list(X.columns)
+    except FileNotFoundError:
+        st.error("❌ Dataset file 'ev_energy_dataset_full_updated.csv' not found!")
+        st.info("Please ensure the dataset is in the project directory.")
+        return None, None
     except Exception as e:
         st.error(f"❌ Error training model: {str(e)}")
         return None, None
 
 # ===== MAIN APP =====
 
-def main():
-    """Main app logic."""
-    # Check authentication
-    if st.session_state.logged_in:
-        render_main_app()
-        return
+st.title("⚡ EV Smart Route Planner")
+st.write("Plan your EV journey with estimated energy, SOC, and charging stations.")
+
+# Load model first
+rf_model, feature_order = load_or_train_model()
+if rf_model is None:
+    st.stop()
+
+# User Inputs
+st.header("🔢 Enter Trip Details")
+col1, col2 = st.columns(2)
+with col1:
+    start = st.text_input("Start Location", "Bangalore, India")
+with col2:
+    end = st.text_input("Destination Location", "Mysore, India")
+
+col3, col4, col5 = st.columns(3)
+with col3:
+    vehicle_choice = st.selectbox("Select Vehicle", list(vehicles_info.keys()))
+with col4:
+    drive_mode_choice = st.selectbox("Drive Mode", drive_modes)
+with col5:
+    current_charge_pct = st.slider("Current Battery Charge (%)", 0, 100, 100)
+
+# Plan Route button
+if st.button("🗺️ Plan Route", use_container_width=True):
+    if not start or not end:
+        st.error("❌ Please enter both start and end locations")
     else:
-        render_login_page()
-        return
-
-    # Load model
-    rf_model, feature_order = load_or_train_model()
-    if rf_model is None:
-        st.error("Failed to load/train model. Please check your dataset.")
-        st.stop()
-
-    # UI Title
-    st.title("⚡ EV Smart Route Planner")
-    st.write("Plan your EV journey with estimated energy, SOC, and charging stations.")
-
-    # User Inputs
-    st.header("🔢 Enter Trip Details")
-    col1, col2 = st.columns(2)
-    with col1:
-        start = st.text_input("Start Location", "Bangalore, India")
-    with col2:
-        end = st.text_input("Destination Location", "Mysore, India")
-
-    col3, col4, col5 = st.columns(3)
-    with col3:
-        vehicle_choice = st.selectbox("Select Vehicle", list(vehicles_info.keys()))
-    with col4:
-        drive_mode_choice = st.selectbox("Drive Mode", drive_modes)
-    with col5:
-        current_charge_pct = st.slider("Current Battery Charge (%)", 0, 100, 100)
-
-    # Plan Route
-    if st.button("🗺️ Plan Route", use_container_width=True):
         with st.spinner("Planning route..."):
             start_coords = geocode(start)
             if not start_coords:
                 st.stop()
+            
             end_coords = geocode(end)
             if not end_coords:
                 st.stop()
-
+            
             route_data = osrm_route(start_coords, end_coords)
             if not route_data:
                 st.stop()
-
+            
             # Store in session
             st.session_state.route_data = route_data
             st.session_state.start_coords = start_coords
             st.session_state.end_coords = end_coords
-
+            
             # Calculate energy
             route_distance = route_data["routes"][0]["distance"] / 1000
-            st.session_state.energy_pred = predict_energy(route_distance, vehicle_choice, drive_mode_choice, rf_model, feature_order)
-
+            st.session_state.energy_pred = predict_energy(
+                route_distance, vehicle_choice, drive_mode_choice, rf_model, feature_order
+            )
+            
             # Find chargers
             st.session_state.chargers = find_chargers_osm(
                 (start_coords[0] + end_coords[0]) / 2,
                 (start_coords[1] + end_coords[1]) / 2
             )
-
+            
             # Calculate SOC
-            st.session_state.soc = max(0, current_charge_pct - (st.session_state.energy_pred / vehicles_info[vehicle_choice]["usable_kwh"] * 100))
+            st.session_state.soc = max(
+                0, 
+                current_charge_pct - (
+                    st.session_state.energy_pred / vehicles_info[vehicle_choice]["usable_kwh"] * 100
+                )
+            )
+            
+            st.success("✅ Route planned successfully!")
+            st.rerun()
 
-    # Display Results
-    if st.session_state.route_data:
-        route_distance = st.session_state.route_data["routes"][0]["distance"] / 1000
-        
-        st.subheader("📊 Trip Summary")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Distance", f"{route_distance:.1f} km")
-        with col2:
-            st.metric("Energy Used", f"{st.session_state.energy_pred:.2f} kWh")
-        with col3:
-            st.metric("Remaining SOC", f"{st.session_state.soc:.1f}%")
-        
-        st.progress(max(0, min(st.session_state.soc / 100, 1.0)))
-
-        # Map
-        st.subheader("🗺️ Route & Charging Stations")
-        m = folium.Map(
-            location=[
-                (st.session_state.start_coords[0] + st.session_state.end_coords[0]) / 2,
-                (st.session_state.start_coords[1] + st.session_state.end_coords[1]) / 2
-            ],
-            zoom_start=8
-        )
-        
-        # Add markers
+# Display Results if route exists
+if st.session_state.route_data:
+    route_distance = st.session_state.route_data["routes"][0]["distance"] / 1000
+    
+    st.subheader("📊 Trip Summary")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Distance", f"{route_distance:.1f} km")
+    with col2:
+        st.metric("Energy Used", f"{st.session_state.energy_pred:.2f} kWh")
+    with col3:
+        st.metric("Remaining SOC", f"{st.session_state.soc:.1f}%")
+    
+    st.progress(max(0, min(st.session_state.soc / 100, 1.0)))
+    
+    # Map
+    st.subheader("🗺️ Route & Charging Stations")
+    m = folium.Map(
+        location=[
+            (st.session_state.start_coords[0] + st.session_state.end_coords[0]) / 2,
+            (st.session_state.start_coords[1] + st.session_state.end_coords[1]) / 2
+        ],
+        zoom_start=8
+    )
+    
+    # Add markers
+    folium.Marker(
+        st.session_state.start_coords,
+        popup="Start",
+        icon=folium.Icon(color="green")
+    ).add_to(m)
+    
+    folium.Marker(
+        st.session_state.end_coords,
+        popup="End",
+        icon=folium.Icon(color="red")
+    ).add_to(m)
+    
+    # Route line
+    route_points = [
+        (lat, lon) for lon, lat in st.session_state.route_data["routes"][0]["geometry"]["coordinates"]
+    ]
+    folium.PolyLine(route_points, color="blue", weight=4, opacity=0.8).add_to(m)
+    
+    # Chargers
+    for lat, lon, name in st.session_state.chargers:
         folium.Marker(
-            st.session_state.start_coords,
-            popup="Start",
-            icon=folium.Icon(color="green")
+            [lat, lon],
+            popup=name,
+            icon=folium.Icon(color="blue", icon="bolt", prefix="fa")
         ).add_to(m)
-        
-        folium.Marker(
-            st.session_state.end_coords,
-            popup="End",
-            icon=folium.Icon(color="red")
-        ).add_to(m)
-        
-        # Route line
-        route_points = [
-            (lat, lon) for lon, lat in st.session_state.route_data["routes"][0]["geometry"]["coordinates"]
-        ]
-        folium.PolyLine(route_points, color="blue", weight=4, opacity=0.8).add_to(m)
-        
-        # Chargers
-        for lat, lon, name in st.session_state.chargers:
-            folium.Marker(
-                [lat, lon],
-                popup=name,
-                icon=folium.Icon(color="blue", icon="bolt", prefix="fa")
-            ).add_to(m)
-        
-        st_folium(m, width=800, height=500)
-
-if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        st.error(f"❌ Unexpected error: {str(e)}")
-        import traceback
-        st.write(traceback.format_exc())
+    
+    st_folium(m, width=800, height=500)
+    
+    # Clear button
+    if st.button("🔄 Plan Another Route"):
+        st.session_state.route_data = None
+        st.rerun()
