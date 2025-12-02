@@ -180,33 +180,35 @@ if st.button("Plan Route") or st.session_state.route_data:
             )
             st.session_state.soc = max(0, current_charge_pct - (energy_pred/vehicles_info[vehicle_choice]["usable_kwh"]*100))
 
-        # Display results
-        route_distance = st.session_state.route_data["routes"][0]["distance"] / 1000
-        st.subheader("📊 Trip Summary")
-        st.write(f"Distance: **{route_distance:.1f} km**")
-        st.write(f"Predicted Energy: **{st.session_state.energy_pred:.2f} kWh**")
-        st.write(f"Estimated SOC Remaining: **{st.session_state.soc:.1f}%**")
-        st.progress(st.session_state.soc/100)
-    
-        # Map
-        m = folium.Map(location=[(st.session_state.start_coords[0]+st.session_state.end_coords[0])/2,
-                                 (st.session_state.start_coords[1]+st.session_state.end_coords[1])/2], zoom_start=8)
-        folium.Marker(st.session_state.start_coords, popup="Start", icon=folium.Icon(color="green")).add_to(m)
-        folium.Marker(st.session_state.end_coords, popup="End", icon=folium.Icon(color="red")).add_to(m)
-        route_points = [(lat, lon) for lon, lat in st.session_state.route_data["routes"][0]["geometry"]["coordinates"]]
-        folium.PolyLine(route_points, color="blue", weight=4, opacity=0.8).add_to(m)
-    
-        for lat, lon, name in st.session_state.chargers:
-            folium.Marker([lat, lon], popup=name, icon=folium.Icon(color="blue", icon="bolt")).add_to(m)
-    
-        st.subheader("🗺️ Route & Charging Stations")
-        st_folium(m, width=800, height=500)
-    
-    
-    
+            if st.session_state.route_data:
+            # Display results
+            route_distance = st.session_state.route_data["routes"][0]["distance"] / 1000
+            st.subheader("📊 Trip Summary")
+            st.write(f"Distance: **{route_distance:.1f} km**")
+            st.write(f"Predicted Energy: **{st.session_state.energy_pred:.2f} kWh**")
+            st.write(f"Estimated SOC Remaining: **{st.session_state.soc:.1f}%**")
+            st.progress(st.session_state.soc/100)
+        
+            # Map
+            m = folium.Map(location=[(st.session_state.start_coords[0]+st.session_state.end_coords[0])/2,
+                                     (st.session_state.start_coords[1]+st.session_state.end_coords[1])/2], zoom_start=8)
+            folium.Marker(st.session_state.start_coords, popup="Start", icon=folium.Icon(color="green")).add_to(m)
+            folium.Marker(st.session_state.end_coords, popup="End", icon=folium.Icon(color="red")).add_to(m)
+            route_points = [(lat, lon) for lon, lat in st.session_state.route_data["routes"][0]["geometry"]["coordinates"]]
+            folium.PolyLine(route_points, color="blue", weight=4, opacity=0.8).add_to(m)
+        
+            for lat, lon, name in st.session_state.chargers:
+                folium.Marker([lat, lon], popup=name, icon=folium.Icon(color="blue", icon="bolt")).add_to(m)
+        
+            st.subheader("🗺️ Route & Charging Stations")
+            st_folium(m, width=800, height=500)
     
     
     
+    
+    
+    
+
 
 
 
