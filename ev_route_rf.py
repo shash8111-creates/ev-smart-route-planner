@@ -1,5 +1,8 @@
 # ev_route_rf.py
 import streamlit as st
+from auth_ui import render_login_page, render_main_app
+from trip_manager import TripManager
+import streamlit as st
 import pandas as pd
 import requests
 import folium
@@ -180,3 +183,4 @@ if st.button("Plan Route") or st.session_state.route_data:
 
     st.subheader("🗺️ Route & Charging Stations")
     st_folium(m, width=800, height=500)
+
