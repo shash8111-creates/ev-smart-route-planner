@@ -1,4 +1,5 @@
 # ev_route_rf.py
+
 import streamlit as st
 from auth_ui import render_login_page, render_main_app
 from trip_manager import TripManager
@@ -181,7 +182,6 @@ if st.button("Plan Route") or st.session_state.route_data:
             st.session_state.soc = max(0, current_charge_pct - (energy_pred/vehicles_info[vehicle_choice]["usable_kwh"]*100))
 
             if st.session_state.route_data:
-            # Display results
             route_distance = st.session_state.route_data["routes"][0]["distance"] / 1000
             st.subheader("📊 Trip Summary")
             st.write(f"Distance: **{route_distance:.1f} km**")
@@ -208,6 +208,7 @@ if st.button("Plan Route") or st.session_state.route_data:
     
     
     
+
 
 
 
