@@ -9,6 +9,11 @@ import joblib
 import os
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
+try:
+    from weather_elevation_traffic import get_weather_data, get_elevation_profile, get_traffic_data, adjust_energy_for_conditions, display_energy_breakdown
+    HAS_WEATHER_API = True
+except ImportError:
+    HAS_WEATHER_API = False
 
 st.set_page_config(page_title="⚡ EV Smart Route Planner", layout="wide")
 
@@ -253,6 +258,55 @@ if st.session_state.route_data is not None:
         st.metric("Remaining SOC", f"{st.session_state.soc:.1f}%")
     
     st.progress(max(0, min(st.session_state.soc / 100, 1.0)))
+
+    # Fetch Weather, Elevation, and Traffic Data
+    if HAS_WEATHER_API:
+        with st.spinner("🌤️ Fetching weather data..."):
+            weather_data = get_weather_data(st.session_state.start_coords[0], st.session_state.start_coords[1])
+        
+        with st.spinner("⛰️ Analyzing elevation profile..."):
+            elevation_data = get_elevation_profile(st.session_state.start_coords, st.session_state.end_coords)
+        
+        with st.spinner("🚗 Checking traffic conditions..."):
+            traffic_data = get_traffic_data(st.session_state.start_coords, st.session_state.end_coords)
+        
+        # Display Environmental Conditions
+        st.divider()
+        st.subheader("🌍 Environmental Conditions & Route Analysis")
+        
+        env_col1, env_col2, env_col3 = st.columns(3)
+        with env_col1:
+            st.metric("🌡️ Temperature", f"{weather_data.get('temperature', 25):.1f}°C")
+            st.metric("💨 Wind Speed", f"{weather_data.get('wind_speed', 0):.1f} km/h")
+            st.metric("💧 Humidity", f"{weather_data.get('humidity', 50):.0f}%")
+        
+        with env_col2:
+            st.metric("⬆️ Elevation Gain", f"{elevation_data.get('elevation_gain', 0):.0f} m")
+            st.metric("⬇️ Elevation Loss", f"{elevation_data.get('elevation_loss', 0):.0f} m")
+            st.metric("📈 Avg Slope", f"{elevation_data.get('avg_slope', 0):.2f}%")
+        
+        with env_col3:
+            st.metric("🚦 Traffic Status", traffic_data.get('traffic_status', '🟡 Normal'))
+            st.metric("⏱️ Traffic Delay", f"+{traffic_data.get('delay_minutes', 0):.0f} min")
+            st.metric("🐢 Speed Reduction", f"{traffic_data.get('speed_reduction_percent', 0)}%")
+        
+        # Adjust energy consumption based on conditions
+        adjusted_energy = adjust_energy_for_conditions(
+            st.session_state.energy_pred,
+            weather_data,
+            elevation_data,
+            traffic_data
+        )
+        
+        # Display energy adjustment breakdown
+        st.divider()
+        display_energy_breakdown(st, adjusted_energy, st.session_state.energy_pred)
+        
+        # Update SOC with adjusted energy
+        adjusted_soc = max(0, st.session_state.soc - (adjusted_energy["adjusted_energy"] / vehicles_info[st.session_state.route_data.get("vehicle", "Tata Nexon EV")]["usable_kwh"] * 100))
+        
+        st.warning(f"⚠️ **Adjusted SOC at Destination:** {adjusted_soc:.1f}% (vs. {st.session_state.soc:.1f}% without conditions)")
+
     
     st.subheader("🗺️ Route & Charging Stations")
     m = folium.Map(
@@ -297,5 +351,6 @@ if st.session_state.route_data is not None:
         st.session_state.chargers = []
         st.session_state.energy_pred = 0
         st.session_state.soc = 100
+
 
 
