@@ -39,6 +39,11 @@ if 'route_data' not in st.session_state:
     st.session_state.energy_pred = 0
     st.session_state.soc = 100
 
+    # Authentication check
+if HAS_AUTH and not st.session_state.logged_in:
+    render_login_page()
+    st.stop()
+
 def geocode(place):
     try:
         url = "https://nominatim.openstreetmap.org/search"
@@ -264,3 +269,4 @@ if st.session_state.route_data is not None:
         st.session_state.chargers = []
         st.session_state.energy_pred = 0
         st.session_state.soc = 100
+
