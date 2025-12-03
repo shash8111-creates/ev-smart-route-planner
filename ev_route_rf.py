@@ -39,10 +39,38 @@ if 'route_data' not in st.session_state:
     st.session_state.energy_pred = 0
     st.session_state.soc = 100
 
-    # Authentication check
-if HAS_AUTH and not st.session_state.logged_in:
-    render_login_page()
+# Simple built-in login page
+if not st.session_state.logged_in:
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.title("⚡ EV Smart Route Planner")
+        st.subheader("Welcome! Please Log In")
+        
+        tab1, tab2 = st.tabs(["Login", "Register"])
+        
+        with tab1:
+            st.write("### Sign In to Your Account")
+            username_login = st.text_input("Username", key="login_user")
+            password_login = st.text_input("Password", type="password", key="login_pass")
+            
+            demo_users = {"admin": "admin123", "demo": "demo123", "user": "user123"}
+            
+            if st.button("🔓 Login", use_container_width=True):
+                if username_login in demo_users and demo_users[username_login] == password_login:
+                    st.session_state.logged_in = True
+                    st.session_state.username = username_login
+                    st.success(f"✅ Welcome, {username_login}!")
+                    st.rerun()
+                else:
+                    st.error("❌ Invalid credentials")
+            
+            st.info("Demo: admin/admin123, demo/demo123, user/user123")
+        
+        with tab2:
+            st.write("### Create New Account")
+            st.info("Registration feature coming soon!")
     st.stop()
+
 
 def geocode(place):
     try:
@@ -269,4 +297,5 @@ if st.session_state.route_data is not None:
         st.session_state.chargers = []
         st.session_state.energy_pred = 0
         st.session_state.soc = 100
+
 
