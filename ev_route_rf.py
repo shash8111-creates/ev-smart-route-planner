@@ -96,7 +96,7 @@ def osrm_route(start_coords, end_coords):
     try:
         url = f"http://router.project-osrm.org/route/v1/driving/{start_coords[1]},{start_coords[0]};{end_coords[1]},{end_coords[0]}"
         params = {"overview": "full", "geometries": "geojson"}
-        r = requests.get(url, params=params, timeout=15)
+        r = requests.get(url, params=params, timeout=60)
         r.raise_for_status()
         return r.json()
     except Exception as e:
@@ -351,6 +351,7 @@ if st.session_state.route_data is not None:
         st.session_state.chargers = []
         st.session_state.energy_pred = 0
         st.session_state.soc = 100
+
 
 
 
